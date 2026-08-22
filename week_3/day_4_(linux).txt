@@ -1,0 +1,23 @@
+Nhóm 1 — Di chuyển:
+pwd (đang ở đâu), ls (list file), cd folder (vào), cd .. (lên)
+
+Nhóm 2 — Thao tác file:
+mkdir (tạo folder), touch (tạo file), cp (copy), mv (move/rename), rm (xóa)
+
+Nhóm 3 — Xem nội dung file (DE dùng nhiều nhất):
+cat file (in hết), head -5 file (5 dòng đầu), tail -3 file (3 dòng cuối), wc -l file (đếm dòng)
+
+Nhóm 4 — Tìm kiếm:
+grep "text" file (lọc dòng chứa text), thêm -i (không phân biệt hoa/thường), -c (đếm), -n (hiện số dòng)
+
+Nhóm 5 — Pipe |:
+Nối output lệnh trước thành input lệnh sau. Ví dụ: cat file | grep "Hanoi" | wc -l — đọc file → lọc Hanoi → đếm.
+
+Nhóm 6 — curl (gọi API):
+curl URL (GET), curl -o file.json URL (lưu ra file), curl -X POST -d '{}' URL (POST)
+
+Nhóm 7 — Environment variables:
+export KEY="value" (set biến), echo $KEY (đọc biến), env (xem tất cả)
+
+Nhóm 8 — Tiện ích:
+which python (tìm path), history (lịch sử lệnh), clear (xóa màn hình)

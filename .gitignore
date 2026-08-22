@@ -1,2 +1,5 @@
 ./specstory
 ./vscode
+.venv/
+.env
+__pycache__/
