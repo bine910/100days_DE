@@ -1,4 +1,0 @@
-{
-    "specstory.cloudSync.enabled": "always",
-    "python-envs.defaultEnvManager": "ms-python.python:system"
-}

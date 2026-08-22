@@ -1,5 +1,7 @@
-./specstory
-./vscode
+.specstory/
+.vscode/
 .venv/
 .env
 __pycache__/
+*.docx
+output.json
