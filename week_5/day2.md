@@ -1,0 +1,30 @@
+
+[customer] ──── [orders]
+Cardinality: [1:N]
+Optionality: [ 1..1 ──── 0..N ]
+FK location: [orders]
+junction table: [none]
+
+[order] ──── [products]
+Cardinality: [N:N]
+Optionality: [ 1..N ──── 1..N]
+FK location: [products]
+junction table: [OrderItem]
+
+[order] ──── [payments]
+Cardinality: [1:N]
+Optionality: [ 0..1 ──── 1..N  ]
+FK location: [payments]
+junction table: [none]
+
+[seller] ──── [products]
+Cardinality: [N:N]
+Optionality: [ 0..N ──── 0..N ]
+FK location: [products]
+junction table: [SelledProduct]
+
+[order] ──── [review]
+Cardinality: [1:1]
+Optionality: [ 1..1 ── 0..1]
+FK location: [review]
+junction table: [none]

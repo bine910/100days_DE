@@ -29,8 +29,8 @@ def build_sales(orders: pd.DataFrame, order_items: pd.DataFrame,
     sales['year_month'] = sales['order_purchase_timestamp'].dt.to_period('M')
     return sales
 def revenue_by_category(sales: pd.DataFrame) -> pd.DataFrame:
-    """Fine the revenue by category."""
+    """Find the revenue by category."""
     return sales.groupby(['product_category_name_english'])['price'].agg(['sum','mean','count']).sort_values('sum',ascending=False)
 def revenue_by_month(sales: pd.DataFrame) -> pd.Series:
-    """Fine the revenue by month."""
+    """Find the revenue by month."""
     return sales.groupby('year_month')['price'].sum()
