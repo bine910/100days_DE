@@ -131,3 +131,48 @@ canceled
 Không cần tạo một dimension riêng nếu không có thêm descriptive attributes.
 
 > Về thuật ngữ Kimball, `order_id` là ví dụ degenerate dimension điển hình. `order_status` về mặt chặt chẽ thường được xem là một low-cardinality attribute và đôi khi có thể đưa vào junk dimension. Ở schema nhỏ này, giữ trực tiếp trong fact là đủ đơn giản và thực dụng.
+## 5. Bus Matrix
+
+Bus Matrix ánh xạ các business process (fact table) với các dimension dùng chung.
+Dimension xuất hiện ở nhiều fact table gọi là **conformed dimension** —
+thiết kế một lần, dùng nhất quán across toàn bộ warehouse.
+
+|                    | dim_customer | dim_product | dim_date | dim_seller | dim_return_reason |
+|--------------------|:---:|:---:|:---:|:---:|:---:|
+| **fact_sales**     | ✅  | ✅  | ✅  | ✅  |     |
+| **fact_returns**   | ✅  | ✅  | ✅  | ✅  | ✅  |
+
+`dim_customer`, `dim_product`, `dim_date`, `dim_seller` là conformed —
+definition giống nhau dù truy cập từ sales hay returns.
+
+`dim_return_reason` chỉ có ý nghĩa trong context đổi trả
+(lỗi sản phẩm, sai size, đổi ý...), không liên quan đến sales.
+
+---
+
+## 6. Medallion Architecture Mapping
+
+```text
+Bronze (Raw)
+  Dữ liệu thô: CSV, JSON, API response
+  Không transform, giữ nguyên để trace ngược
+  VD: raw/orders.csv, raw/customers.json
+       ↓
+Silver (Cleaned / 3NF)
+  Deduplicate, validate, type-cast
+  Normalized — thiết kế tuần 5
+  Single source of truth (tư duy Inmon)
+  VD: cleaned/customers, cleaned/orders, cleaned/order_items
+       ↓
+Gold (Star Schema)
+  Dimensional model — thiết kế tuần 6
+  Denormalized, tối ưu cho BI/report
+  Kimball fact + dimension
+  VD: mart/fact_sales, mart/dim_customer, mart/dim_product
+```
+
+Tuần 5 (3NF) và tuần 6 (Star Schema) không đối lập —
+chúng phục vụ **hai layer khác nhau** trong cùng một pipeline:
+
+- **Silver = Inmon** — normalized, integrated, consistent
+- **Gold = Kimball** — denormalized, fast, analyst-friendly
