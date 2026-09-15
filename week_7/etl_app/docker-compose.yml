@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=de_practice
+      - POSTGRES_USER=de_user
+      - POSTGRES_PASSWORD=de_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  
+
+  etl:
+    build: .
+    environment:
+      - GITHUB_USERNAME=octocat
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=de_practice
+      - DB_USER=de_user
+      - DB_PASS=de_pass
+    depends_on:
+      - postgres
+   
+volumes:
+    postgres_data:

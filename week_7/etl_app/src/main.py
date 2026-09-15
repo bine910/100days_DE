@@ -1,9 +1,11 @@
 import os
 import json
 import logging
+import time
 import requests
 import json
 import csv
+import psycopg2
 from dotenv import load_dotenv
 
 # Gọi API → parse → lưu file. Yêu cầu:
@@ -16,6 +18,13 @@ from dotenv import load_dotenv
 # Có requirements.txt
 load_dotenv()
 username=os.environ.get("GITHUB_USERNAME")
+
+# Connection string lấy từ env
+DB_HOST = os.environ.get("DB_HOST", "localhost")
+DB_PORT = os.environ.get("DB_PORT", "5432")
+DB_NAME = os.environ.get("DB_NAME", "de_practice")
+DB_USER = os.environ.get("DB_USER", "de_user")
+DB_PASS = os.environ.get("DB_PASS", "de_pass")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -36,14 +45,48 @@ def fetch(username:str)->dict|None:
     except requests.exceptions.RequestException as e:
         log.error(f"That bai:{e}")
         return None
+def load_to_db(data, retries=5, delay=3):
+    for attempt in range(retries):
+        try:
+            conn = psycopg2.connect(
+                host=DB_HOST, port=DB_PORT,
+                dbname=DB_NAME, user=DB_USER, password=DB_PASS
+            )
+            break
+        except psycopg2.OperationalError:
+            log.warning(f"PostgreSQL chưa sẵn sàng, thử lại ({attempt+1}/{retries})...")
+            time.sleep(delay)
+    else:
+        log.error("Không thể kết nối PostgreSQL")
+        return
 
+    cur = conn.cursor()
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS github_repos (
+            id INT PRIMARY KEY,
+            name TEXT,
+            full_name TEXT,
+            html_url TEXT,
+            description TEXT,
+            created_at TEXT
+        )
+    """)
+
+    for repo in data:
+        cur.execute("""
+            INSERT INTO github_repos (id, name, full_name, html_url, description, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO NOTHING
+        """, (
+            repo["id"], repo["name"], repo["full_name"],
+            repo["html_url"], repo.get("description"), repo["created_at"]
+        ))
+
+    conn.commit()
+    log.info(f"Loaded {len(data)} repos to PostgreSQL")
+    cur.close()
+    conn.close()
 data = fetch(username)
 if data:
-    os.makedirs("data", exist_ok=True)
-    with open("data/output.json", "w") as f:
-        json.dump(data,f,indent=2)
-    log.info("Saved to output.json")
-    with open ("data/output.csv","w",newline="",encoding="utf-8")as f:
-        w=csv.DictWriter(f,fieldnames=data[0].keys())
-        w.writeheader()
-        w.writerows(data)
+    load_to_db(data)
