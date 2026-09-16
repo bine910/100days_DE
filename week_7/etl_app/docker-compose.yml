@@ -2,9 +2,9 @@ services:
   postgres:
     image: postgres:13
     environment:
-      - POSTGRES_DB=de_practice
-      - POSTGRES_USER=de_user
-      - POSTGRES_PASSWORD=de_pass
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
       - "5433:5432"
     volumes:
@@ -14,12 +14,12 @@ services:
   etl:
     build: .
     environment:
-      - GITHUB_USERNAME=octocat
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=de_practice
-      - DB_USER=de_user
-      - DB_PASS=de_pass
+      - GITHUB_USERNAME=${GITHUB_USERNAME}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASS=${POSTGRES_PASSWORD}
     depends_on:
       - postgres
    
