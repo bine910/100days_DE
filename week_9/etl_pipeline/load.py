@@ -1,14 +1,14 @@
 import pandas as pd
 import psycopg2
 import logging
-
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(5))
 def load(df: pd.DataFrame) -> None:
     conn = None
     cursor = None

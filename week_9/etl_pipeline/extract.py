@@ -2,13 +2,15 @@ import pandas as pd
 import boto3
 from io import BytesIO
 import logging
+from tenacity import retry, stop_after_attempt, wait_fixed
+
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 log = logging.getLogger(__name__)
-
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(5))
 def extract_from_minio(bucket: str, key: str) -> pd.DataFrame:
     s3 = boto3.client(
         "s3",
@@ -20,7 +22,7 @@ def extract_from_minio(bucket: str, key: str) -> pd.DataFrame:
     df = pd.read_csv(BytesIO(response["Body"].read()), sep=";")
     log.info(f"Extracted {len(df)} rows from MinIO: {bucket}/{key}")
     return df
-
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(5))
 def extract(file_path: str) -> pd.DataFrame:
     try:
         df = pd.read_csv(file_path, sep=";")

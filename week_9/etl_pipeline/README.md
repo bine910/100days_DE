@@ -35,6 +35,8 @@ week_9/
     ├── load.py                    # UPSERT vào PostgreSQL
     ├── upload_to_minio.py          # đẩy CSV gốc lên MinIO (bronze layer)
     ├── docker-compose.yml          # PostgreSQL + MinIO cho local dev
+    ├── requirement.txt             # dependency Python (pin version)
+    ├── .env.example                # mẫu biến môi trường, copy thành .env
     └── README.md
 ```
 
@@ -45,7 +47,31 @@ week_9/
 - Python 3.12
 - Docker (để chạy PostgreSQL + MinIO)
 
-### 2. Dựng hạ tầng local
+### 2. Cấu hình biến môi trường
+
+Copy `.env.example` thành `.env` rồi điền giá trị thật:
+
+```bash
+cp .env.example .env
+```
+
+`docker-compose.yml` đọc trực tiếp các biến sau từ `.env` (Docker Compose tự nạp file `.env` cùng thư mục):
+
+```
+POSTGRES_DB=de_week9
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+aws_access_key_id=minioadmin
+aws_secret_access_key=minioadmin
+```
+
+`.env.example` hiện chỉ có sẵn `aws_access_key_id`/`aws_secret_access_key` — cần tự thêm 3 dòng `POSTGRES_*` ở trên vào `.env.example`/`.env` thì `docker-compose up` mới chạy được, vì `docker-compose.yml` đã đổi từ giá trị hard-code sang `${POSTGRES_DB}`, `${POSTGRES_USER}`, `${POSTGRES_PASSWORD}`, `${aws_access_key_id}`, `${aws_secret_access_key}`.
+
+`upload_to_minio.py` cũng tự đọc `aws_access_key_id`/`aws_secret_access_key` từ `.env` (qua `python-dotenv`) để xác thực với MinIO, nên giá trị trong `.env` phải khớp với `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD` mà container MinIO đang chạy.
+
+> **Lưu ý — chưa đồng bộ hết:** `extract.py` (`extract_from_minio`) và `load.py` (`psycopg2.connect(...)`) **vẫn đang hard-code** `minioadmin`/`minioadmin` và `postgres`/`postgres`/`de_week9`, chưa đọc từ `.env`. Nếu đổi giá trị trong `.env` khác với các giá trị hard-code này, `main.py --source minio` và bước `load()` sẽ kết nối thất bại. Cần sửa `extract.py`/`load.py` để dùng `os.getenv(...)` giống `upload_to_minio.py` nếu muốn đổi credential.
+
+### 3. Dựng hạ tầng local
 
 ```bash
 cd week_9/etl_pipeline
@@ -54,10 +80,10 @@ docker-compose up -d
 
 Lệnh này khởi động:
 
-- **PostgreSQL** — `localhost:5432`, database `de_week9`, user/password `postgres`/`postgres`
-- **MinIO** — API tại `localhost:9000`, console tại `localhost:9001`, access/secret key `minioadmin`/`minioadmin`
+- **PostgreSQL** — `localhost:5432`, database/user/password lấy từ `.env`
+- **MinIO** — API tại `localhost:9000`, console tại `localhost:9001`, access/secret key lấy từ `.env` (`aws_access_key_id`/`aws_secret_access_key`)
 
-### 3. Tạo bảng đích trong PostgreSQL
+### 4. Tạo bảng đích trong PostgreSQL
 
 `load.py` giả định bảng `gold_price_daily` đã tồn tại với `date` là khóa duy nhất (bắt buộc để `ON CONFLICT (date)` hoạt động):
 
@@ -72,15 +98,15 @@ CREATE TABLE gold_price_daily (
 );
 ```
 
-### 4. Cài dependency Python
-
-Project chưa có `requirements.txt`, cài trực tiếp các package sau vào virtualenv:
+### 5. Cài dependency Python
 
 ```bash
 python -m venv venv
 venv\Scripts\activate        # Windows
-pip install pandas boto3 psycopg2-binary
+pip install -r requirement.txt
 ```
+
+`requirement.txt` (lưu ý tên file không có "s") pin sẵn version của `pandas`, `boto3`, `psycopg2-binary`, `python-dotenv` (đọc `.env`) và `tenacity` (retry).
 
 ## Cách chạy
 
@@ -137,3 +163,7 @@ DO UPDATE SET
 - Có thể chạy backfill **chồng lấn khoảng ngày** (ví dụ chạy lại tháng 6 sau khi đã chạy cả quý 2) mà không sợ nhân đôi dữ liệu của những ngày trùng.
 
 Đánh đổi: pipeline load từng dòng một (`for _, row in df.iterrows(): cursor.execute(...)`) nên với dataset lớn sẽ chậm hơn so với bulk upsert (`execute_values`/`COPY ... ON CONFLICT`); hiện tại chấp nhận được vì dữ liệu nến ngày (`XAU_1d_data.csv`) không quá lớn.
+
+## Retry tự động
+
+`extract()`, `extract_from_minio()` và `load()` đều được bọc `@retry(stop=stop_after_attempt(3), wait=wait_fixed(5))` (thư viện `tenacity`): nếu lỗi tạm thời (mất kết nối MinIO/Postgres, timeout...), hàm tự thử lại tối đa 3 lần, cách nhau 5 giây, trước khi raise exception ra ngoài. Kết hợp với UPSERT idempotent ở bước load, việc retry này không tạo dữ liệu trùng dù `load()` bị gọi lại nhiều lần cho cùng một batch.
