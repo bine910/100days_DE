@@ -1,0 +1,36 @@
+{
+  "orders": [
+    {
+      "id": "ORD-001",
+      "customer": {"name": "Nguyễn Văn A", "email": "a@gmail.com", "address": null},
+      "items": [
+        {"product": "Áo thun", "qty": 2, "price": "150000"},
+        {"product": "Quần jean", "qty": 1, "price": "350000"}
+      ],
+      "total": "650000",
+      "status": "completed",
+      "created_at": "2024-01-15T08:30:00+07:00"
+    },
+    {
+      "id": "ORD-001",
+      "customer": {"name": "Nguyễn Văn A", "email": "a@gmail.com", "address": null},
+      "items": [
+        {"product": "Áo thun", "qty": 2, "price": "150000"},
+        {"product": "Quần jean", "qty": 1, "price": "350000"}
+      ],
+      "total": "650000",
+      "status": "completed",
+      "created_at": "2024-01-15T08:30:00+07:00"
+    },
+    {
+      "id": "ORD-002",
+      "customer": {"name": "Trần Thị B", "email": "b@gmail.com", "address": "123 Hai Bà Trưng"},
+      "items": [
+        {"product": "Áo sơ mi", "qty": 1, "price": "250000"}
+      ],
+      "total": "250000",
+      "status": "completed",
+      "created_at": "2024-01-15T10:00:00+07:00"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+
+services:
+  minio:
+    image: quay.io/minio/minio
+    container_name: minio_lake
+    ports:
+      - "9000:9000"    # API endpoint (code Python kết nối vào đây)
+      - "9001:9001"    # Web Console (giao diện trình duyệt)
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    volumes:
+      - minio_data:/data    # Data persist khi restart container
+    command: server /data --console-address ":9001"
+
+volumes:
+  minio_data:
