@@ -10,9 +10,13 @@ Pipeline gồm 3 bước cổ điển:
    - file CSV local (`extract`), hoặc
    - object trên MinIO (`extract_from_minio`), dữ liệu được đọc thẳng vào `pandas.DataFrame` từ bytes trả về, không cần tải file xuống đĩa.
 2. **Transform** (`transform.py`) — parse cột `Date` sang kiểu datetime và lọc dữ liệu theo khoảng `[start_date, end_date]` nếu được truyền vào (dùng cho backfill một giai đoạn cụ thể).
-3. **Load** (`load.py`) — ghi dữ liệu vào bảng `gold_price_daily` trong PostgreSQL bằng `INSERT ... ON CONFLICT (date) DO UPDATE` (UPSERT), theo từng dòng.
+3. **Load** (`load.py`) — ghi dữ liệu vào bảng `gold_price_daily` trong PostgreSQL bằng `INSERT ... ON CONFLICT (date) DO UPDATE` (UPSERT), theo lô (bulk) bằng `execute_values`.
 
 `main.py` là entrypoint, nối 3 bước lại và nhận tham số dòng lệnh để chọn nguồn dữ liệu và khoảng ngày cần chạy.
+
+`logger.py` cấu hình logging dùng chung cho cả pipeline: một logger tên `etl`, ghi log đồng thời ra console và ra file `logs/etl.log` (append). `extract.py`, `transform.py`, `load.py` đều import `log` từ module này thay vì tự gọi `logging.basicConfig` riêng lẻ, tránh log bị cấu hình trùng/khác định dạng giữa các module.
+
+`test_pipeline.py` là bộ test chất lượng dữ liệu (data quality test) chạy **sau** khi pipeline load xong: kết nối thẳng vào PostgreSQL và kiểm tra lại dữ liệu thực tế trong bảng `gold_price_daily` bằng các câu SQL `COUNT`, thay vì test logic Python bằng dữ liệu giả.
 
 Ngoài ra, `upload_to_minio.py` là một script phụ dùng để đẩy file CSV gốc lên MinIO theo layer "bronze" (`gold-price/bronze/<ngày>/XAU_1d_data.csv`), mô phỏng bước ingest dữ liệu thô vào data lake trước khi ETL đọc lại từ đó.
 
@@ -32,8 +36,12 @@ week_9/
     ├── main.py                    # entrypoint: parse args, chạy extract -> transform -> load
     ├── extract.py                 # đọc CSV local hoặc object trên MinIO
     ├── transform.py                # parse ngày, filter theo start/end date
-    ├── load.py                    # UPSERT vào PostgreSQL
+    ├── load.py                    # UPSERT (bulk) vào PostgreSQL
+    ├── logger.py                   # cấu hình logging dùng chung (console + file logs/etl.log)
+    ├── logs/
+    │   └── etl.log                 # log file, được logger.py ghi append vào
     ├── upload_to_minio.py          # đẩy CSV gốc lên MinIO (bronze layer)
+    ├── test_pipeline.py            # test chất lượng dữ liệu sau khi load vào Postgres
     ├── docker-compose.yml          # PostgreSQL + MinIO cho local dev
     ├── requirement.txt             # dependency Python (pin version)
     ├── .env.example                # mẫu biến môi trường, copy thành .env
@@ -140,6 +148,32 @@ python main.py --source minio --start-date 2023-01-01 --end-date 2023-12-31
 
 > **Lưu ý:** `main.py` đang hard-code key MinIO là `bronze/2026-09-22/XAU_1d_data.csv`. Muốn dùng `--source minio` với ngày khác, phải sửa lại `bronze_key` trong `main.py` (hoặc `extract_from_minio(...)` được gọi) cho khớp với ngày mà `upload_to_minio.py` đã upload.
 
+## Kiểm thử dữ liệu (data quality test)
+
+Sau khi chạy pipeline, dùng `test_pipeline.py` để verify dữ liệu đã thực sự nằm đúng trong bảng `gold_price_daily`:
+
+```bash
+python test_pipeline.py
+```
+
+Hoặc chạy bằng pytest:
+
+```bash
+pytest test_pipeline.py -v
+```
+
+Script kết nối tới Postgres rồi chạy 3 assertion trên chính dữ liệu đã load (không dùng dữ liệu giả):
+
+| Test | Câu SQL kiểm tra | Ý nghĩa |
+|------|------------------|---------|
+| 1. Completeness | `COUNT(*) WHERE date BETWEEN '2024-01-01' AND '2024-01-31'` phải bằng `22` | Đúng số phiên giao dịch của tháng 1/2024 — phát hiện trường hợp load thiếu ngày hoặc filter sai khoảng ngày. |
+| 2. Validity | `COUNT(*) WHERE high < low` phải bằng `0` | Ràng buộc nghiệp vụ của nến giá: giá cao nhất không thể thấp hơn giá thấp nhất. Nếu > 0 thì dữ liệu nguồn hỏng hoặc thứ tự cột bị map sai khi insert. |
+| 3. Uniqueness | `COUNT(*)` phải bằng `COUNT(DISTINCT date)` | Xác nhận UPSERT theo `date` hoạt động đúng — chạy lại pipeline nhiều lần không nhân đôi dữ liệu (kiểm chứng tính idempotent ở phần dưới). |
+
+Mọi kết quả (pass/fail) đều được ghi qua logger chung nên xuất hiện cả trên console lẫn trong `logs/etl.log`. Nếu không kết nối được Postgres, test fail ngay với log `Database connection failed` thay vì báo lỗi mơ hồ.
+
+Lưu ý: test số 1 đang hard-code mốc `22` dòng cho tháng 1/2024, nên chỉ đúng khi đã chạy pipeline phủ được khoảng ngày đó (ví dụ chạy full file, hoặc backfill `--start-date 2024-01-01 --end-date 2024-01-31`).
+
 ## Idempotency (vì sao chạy lại nhiều lần vẫn an toàn)
 
 Bước `load` dùng **UPSERT** thay vì `INSERT` thuần:
@@ -162,8 +196,17 @@ DO UPDATE SET
 - Có thể an toàn **retry** khi job backfill bị lỗi giữa chừng (network drop, container restart...) mà không cần logic dọn dẹp dữ liệu trước khi chạy lại — chỉ cần chạy lại đúng lệnh cũ.
 - Có thể chạy backfill **chồng lấn khoảng ngày** (ví dụ chạy lại tháng 6 sau khi đã chạy cả quý 2) mà không sợ nhân đôi dữ liệu của những ngày trùng.
 
-Đánh đổi: pipeline load từng dòng một (`for _, row in df.iterrows(): cursor.execute(...)`) nên với dataset lớn sẽ chậm hơn so với bulk upsert (`execute_values`/`COPY ... ON CONFLICT`); hiện tại chấp nhận được vì dữ liệu nến ngày (`XAU_1d_data.csv`) không quá lớn.
+`load.py` dùng `execute_values` (thư viện `psycopg2.extras`) để gửi toàn bộ `VALUES` trong một câu lệnh duy nhất thay vì `cursor.execute()` từng dòng một trong vòng lặp, nên nhanh hơn đáng kể so với insert theo dòng khi dataset lớn dần.
 
 ## Retry tự động
 
 `extract()`, `extract_from_minio()` và `load()` đều được bọc `@retry(stop=stop_after_attempt(3), wait=wait_fixed(5))` (thư viện `tenacity`): nếu lỗi tạm thời (mất kết nối MinIO/Postgres, timeout...), hàm tự thử lại tối đa 3 lần, cách nhau 5 giây, trước khi raise exception ra ngoài. Kết hợp với UPSERT idempotent ở bước load, việc retry này không tạo dữ liệu trùng dù `load()` bị gọi lại nhiều lần cho cùng một batch.
+
+## Logging
+
+Toàn bộ pipeline dùng chung một logger (`log`) được cấu hình một lần trong `logger.py`, thay vì mỗi module tự `logging.basicConfig`. Logger này có 2 handler:
+
+- **Console** — in log ra stdout khi chạy `python main.py`.
+- **File** — ghi append vào `logs/etl.log` (thư mục `logs/` cần tồn tại sẵn cạnh các file `.py`, hoặc chạy pipeline từ đúng thư mục `etl_pipeline/` để đường dẫn tương đối `logs/etl.log` hợp lệ).
+
+Mỗi dòng log có format `%(asctime)s - %(levelname)s - %(message)s`, dùng để theo dõi số dòng extract/transform được, kết quả load, và lỗi (kèm retry) khi có sự cố kết nối MinIO/Postgres. `test_pipeline.py` cũng import cùng logger này, nên kết quả từng test được ghi lại chung một dòng thời gian với log của pipeline.

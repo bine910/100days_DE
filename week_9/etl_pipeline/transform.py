@@ -1,18 +1,8 @@
 import pandas as pd
 from extract import extract
 from datetime import date
-import logging
+from logger import log
 import boto3
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
-log = logging.getLogger(__name__)
-
-
-
-
 
 def transform(df: pd.DataFrame,begin_date: str, end_date: str) -> pd.DataFrame:
     df = df.copy()
