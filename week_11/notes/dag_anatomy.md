@@ -216,21 +216,10 @@ Khi `up`, các service đứng ở `Created` chờ `airflow-init` chạy xong �
 
 ---
 
-## 7. Môi trường — bài học xương máu
 
-Đứng chân giữa Windows và WSL gây 3 lỗi trong một buổi:
 
-1. **venv lỗi shebang** — venv tạo từ Windows có `Scripts/`, không có `bin/`; activate từ WSL thì `PATH` trỏ vào hư không, `pip` rơi về `/usr/bin/pip` → `externally-managed-environment`. Và venv **không bao giờ đổi tên/di chuyển được** (shebang ghi đường dẫn tuyệt đối lúc tạo).
-2. **`grep` không tồn tại trên CMD** (dùng `findstr`).
-3. **Ổ C: đầy 100%**, còn 2.7GB — rủi ro thật khi Day 3 ghi file raw.
 
-→ **Quyết định: làm hẳn trong WSL, project đặt tại `~/DE/`.** Mount volume nhanh hơn, dag-processor parse nhanh hơn, Linux tool có sẵn.
-
-Venv trên máy host **chỉ để IDE autocomplete**, không liên quan gì tới Airflow chạy trong Docker. Thiếu nó vẫn viết DAG bình thường.
-
----
-
-## 8. Tự kiểm tra
+## 7. Tự kiểm tra
 
 - [ ] Khác nhau giữa `data = extract()` và `hello_taskflow()`?
 - [ ] Vì sao `a >> b, c >> d` không làm được việc bạn tưởng?

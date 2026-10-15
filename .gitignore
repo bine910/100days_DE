@@ -7,3 +7,5 @@ __pycache__/
 output.json
 # ETL pipeline runtime logs
 week_9/etl_pipeline/logs/
+.airflow/logs/
+.airflow/plugins/
