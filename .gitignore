@@ -8,4 +8,9 @@ output.json
 # ETL pipeline runtime logs
 week_9/etl_pipeline/logs/
 .airflow/logs/
-.airflow/plugins/
+.airflow/plugins/week_11/airflow/logs/
+**/logs/
+**/.venv/
+**/target/
+**/dbt_packages/
+.env
