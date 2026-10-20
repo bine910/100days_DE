@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: olist
+    description: Dữ liệu Olist Brazilian E-Commerce, nạp từ CSV bằng scripts/load_raw.py
+    database: de_week9
+    schema: raw
+    tables:
+      - name: orders
+      - name: order_items
+      - name: customers
+      - name: products
+      - name: order_payments
