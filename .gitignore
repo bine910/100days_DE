@@ -14,3 +14,8 @@ week_9/etl_pipeline/logs/
 **/target/
 **/dbt_packages/
 .env
+
+# datasets — khong commit, luu o MinIO/local
+**/data/raw/
+**/data/processed/
+*.csv
