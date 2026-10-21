@@ -35,7 +35,7 @@ models:
       +materialized: view
       +schema: staging
     intermediate:
-      +materialized: ephemeral
+      +materialized: ephemeral #Snhúng SQL của model đó thẳng vào model dùng nó, dưới dạng CTE
     marts:
       +materialized: table
       +schema: marts
