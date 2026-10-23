@@ -1,0 +1,54 @@
+version: 2
+models:
+  - name: stg_olist__orders
+    description: "Grain: 1 dòng = 1 order_id"
+    columns:
+      - name: order_id
+        description: Khóa chính
+        data_tests: [unique, not_null]
+      - name: customer_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_olist__*')
+              field: customer_id
+
+  - name: stg_olist__customers
+    description: "Grain: 1 dòng = 1 customer_id"
+    columns:
+      - name: customer_id
+        data_tests: [unique, not_null]
+
+  - name: stg_olist__products
+    description: "Grain: 1 dòng = 1 product_id"
+    columns:
+      - name: product_id
+        data_tests: [unique, not_null]
+  - name: stg_olist__order_items
+    description: "Grain: 1 dòng  = 1 (order_id, order_item_id)."
+    columns:
+      - name: order_item_id
+        description: Khóa chính
+        data_tests: [ not_null]
+      - name: order_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_olist__*')
+              field: order_id
+      - name: product_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_olist__*')
+              field: product_id
+  - name: stg_olist__order_payments
+    description: "1 dòng = 1 (order_id, payment_sequential)"
+    columns:
+      - name: order_id
+        description: Khóa chính
+        data_tests: [ not_null]
+      - name: payment_type
+        data_tests:
+          - accepted_values:
+              values: ['credit_card', 'boleto', 'voucher', 'debit_card','not_defined']

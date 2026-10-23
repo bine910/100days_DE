@@ -1,0 +1,6 @@
+version: 2
+
+data_tests:
+  - name: assert_order_revenue_matches_payment
+    config:
+      severity: warn

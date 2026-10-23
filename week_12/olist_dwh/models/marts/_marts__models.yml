@@ -1,0 +1,32 @@
+version: 2
+
+models:
+  - name: fct_orders
+    description: "Grain: 1 dòng = 1 order_id"
+    columns:
+      - name: order_id
+        description: Khóa chính
+        data_tests: [unique, not_null]
+      - name: customer_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_id
+      - name: status
+        data_tests:
+          - accepted_values:
+              values: ['delivered', 'shipped', 'canceled', 'unavailable',
+                       'invoiced', 'processing', 'created', 'approved']
+
+  - name: dim_customers
+    description: "Grain: 1 dòng = 1 customer_id"
+    columns:
+      - name: customer_id
+        data_tests: [unique, not_null]
+
+  - name: dim_products
+    description: "Grain: 1 dòng = 1 product_id"
+    columns:
+      - name: product_id
+        data_tests: [unique, not_null]
