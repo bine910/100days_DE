@@ -1,5 +1,0 @@
-    order_id    |           customer_id            |  status   |    purchased_at     | delivered_customer_at | estimated_delivery_at | item_count | total_revenue | total_payment_value | payment_count 
-----------------+----------------------------------+-----------+---------------------+-----------------------+-----------------------+------------+---------------+---------------------+---------------
- test_order_001 | 06b8999e2fba1a1fbc88172c00ba8bc7 | delivered | 2030-01-15 10:00:00 | 2030-01-20 10:00:00   | 2030-01-25 10:00:00   |            |               |                     |              
-(1 row)
-

@@ -1,0 +1,21 @@
+olist_dwh:
+  outputs:
+    dev:
+      dbname: de_week9
+      host: localhost
+      pass: dwh
+      port: 5433
+      schema: analytics
+      threads: 4
+      type: postgres
+      user: dwh
+    airflow:
+      type: postgres
+      host: postgres-dwh
+      port: 5432
+      user: "{{ env_var('DWH_USER') }}"
+      pass: "{{ env_var('DWH_PASSWORD') }}"
+      dbname: de_week9
+      schema: analytics
+      threads: 4
+  target: dev
