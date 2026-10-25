@@ -1,6 +1,14 @@
 --Grain: 1 dòng = 1 order_id. Dự kiến 99.441 dòng.
+{{ config(
+    materialized='incremental',
+    unique_key='order_id'
+) }}
+
 with orders as (
     select * from {{ ref('stg_olist__orders') }}
+    {% if is_incremental() %}
+    where purchased_at > (select max(purchased_at) from {{ this }})
+    {% endif %}
 ),
 
 items_agg as (

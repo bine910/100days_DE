@@ -8,22 +8,40 @@ models:
         description: Khóa chính
         data_tests: [unique, not_null]
       - name: customer_id
+        description: Khóa ngoại tham chiếu đến dim_customers
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_customers')
-              field: customer_id
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+      - name: total_payment_value
+        description: Tổng số tiền khách thực trả. ĐÃ BAO GỒM lãi trả góp nên thường
+          lớn hơn total_revenue ở đơn có payment_installments > 1.
+    
+      - name: total_revenue
+        description: Tổng (price + freight_value) của mọi dòng hàng. NULL nếu đơn không có dòng hàng nào.
+        
       - name: status
+        description: Trạng thái của đơn hàng
         data_tests:
           - accepted_values:
-              values: ['delivered', 'shipped', 'canceled', 'unavailable',
+              arguments:
+                values: ['delivered', 'shipped', 'canceled', 'unavailable',
                        'invoiced', 'processing', 'created', 'approved']
+      - name: item_count
+        description: Số lượng dòng hàng trong đơn. NULL nếu đơn không có dòng hàng nào.
 
   - name: dim_customers
     description: "Grain: 1 dòng = 1 customer_id"
     columns:
       - name: customer_id
+        description: Khóa chính
         data_tests: [unique, not_null]
+        
+      - name: customer_unique_id
+        description: Khóa chính thứ 2, dùng để join với các bảng khác. Một customer_unique_id có thể có nhiều customer_id.
+        data_tests: [not_null]
 
   - name: dim_products
     description: "Grain: 1 dòng = 1 product_id"
