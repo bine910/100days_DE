@@ -29,3 +29,5 @@ week13/ds.json
 # data artifacts
 *.parquet
 week_9/data/staging/
+
+week_13/export/
