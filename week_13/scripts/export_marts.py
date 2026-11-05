@@ -6,13 +6,13 @@ dòng thuộc ngày đó. Dimension: ghi đè toàn bộ, không partition.
 import argparse
 from datetime import date, timedelta
 from pathlib import Path
+import os
 
 import pandas as pd
 from sqlalchemy import create_engine, text
 
-DWH_URL = "postgresql+psycopg2://dwh:dwh@localhost:5433/de_week9"
-OUT_ROOT = Path("/mnt/c/DE/week_13/export")
-
+DWH_URL = os.environ.get("DWH_URL", "postgresql+psycopg2://dwh:dwh@localhost:5433/de_week9")
+OUT_ROOT = Path(os.environ.get("EXPORT_ROOT", "/mnt/c/DE/week_13/export"))
 # tên bảng -> cột ngày dùng để partition (None = snapshot, ghi đè)
 TABLES = {
     "fct_orders": "purchased_at",

@@ -3,6 +3,10 @@ services:
   minio:
     image: quay.io/minio/minio
     container_name: minio_lake
+    networks:
+      default:
+        aliases:
+          - minio-lake
     ports:
       - "9000:9000"    # API endpoint (code Python kết nối vào đây)
       - "9001:9001"    # Web Console (giao diện trình duyệt)

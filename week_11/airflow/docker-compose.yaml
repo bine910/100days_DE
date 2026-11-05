@@ -49,8 +49,11 @@ x-airflow-common:
   # In order to add custom dependencies or upgrade provider distributions you can use your extended image.
   # Comment the image line, place your Dockerfile in the directory where you placed the docker-compose.yaml
   # and uncomment the "build" line below, Then run `docker-compose build` to build the images.
-  image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:3.3.2}
-  # build: .
+  #image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:3.3.2}
+  build: .
+  networks:
+    - default
+    - lake
   env_file:
     - ${ENV_FILE_PATH:-.env}
   environment:
@@ -67,6 +70,14 @@ x-airflow-common:
     AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW__API_AUTH__JWT_SECRET:-airflow_jwt_secret}
     AIRFLOW__API_AUTH__JWT_ISSUER: ${AIRFLOW__API_AUTH__JWT_ISSUER:-airflow}
     AIRFLOW_CONN_POSTGRES_DWH: 'postgresql://dwh:dwh@postgres-dwh:5432/de_week9'
+    DWH_USER: dwh
+    DWH_PASSWORD: dwh
+    DWH_URL: 'postgresql+psycopg2://dwh:dwh@postgres-dwh:5432/de_week9'
+    EXPORT_ROOT: /opt/airflow/week_13/export
+    MINIO_ENDPOINT: http://minio-lake:9000
+    MINIO_ACCESS_KEY: de-pipeline
+    MINIO_SECRET_KEY: pipeline-secret-2026
+    MINIO_BUCKET: de-marts
     # yamllint disable rule:line-length
     # Use simple http server on scheduler for health checks
     # See https://airflow.apache.org/docs/apache-airflow/stable/administration-and-deployment/logging-monitoring/check-health.html#scheduler-health-check-server
@@ -80,9 +91,12 @@ x-airflow-common:
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/../../week_9/data:/opt/airflow/data
+    - ${AIRFLOW_PROJ_DIR:-.}/../../week_12/olist_dwh:/opt/airflow/dbt
+    - ${AIRFLOW_PROJ_DIR:-.}/../../week_12/olist_dwh/profiles:/opt/airflow/.dbt
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
+    - ${AIRFLOW_PROJ_DIR:-.}/../../week_13:/opt/airflow/week_13
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -353,3 +367,10 @@ services:
 volumes:
   postgres-dwh-volume:
   postgres-db-volume:
+
+networks:
+  default:
+    name: airflow_default
+  lake:
+    external: true
+    name: minio_demo_default
